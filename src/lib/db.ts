@@ -308,4 +308,4 @@ function initSchema(db: DatabaseSync) {
       new Date().toISOString()
     );
   }
-}
+
