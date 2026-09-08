@@ -9,7 +9,7 @@ export interface User {
   efootball_id: string;
   whatsapp: string;
   balance: number;
-  role: 'USER' | 'ADMIN';
+  role: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
   avatar?: string;
   wins: number;
   losses: number;

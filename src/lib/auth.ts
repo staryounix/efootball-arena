@@ -51,6 +51,7 @@ export async function getSessionUser() {
     if (error || !user) return null;
     if (user.role === 'BANNED') return null;
     if (user.email === 'younix.far@gmail.com') user.role = 'ADMIN';
+    if (user.role === 'SUPER_ADMIN') user.role = 'ADMIN';
     return user;
   } catch {
     return null;

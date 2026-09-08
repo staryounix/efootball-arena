@@ -52,7 +52,7 @@ export async function POST(req: Request) {
 
     const cleanPhone = whatsapp.replace(/[^0-9]/g, '');
     const isAdmin = cleanPhone.includes('604084574') || cleanPhone === '212604084574' || cleanPhone === '0604084574';
-    const role = isAdmin ? 'ADMIN' : 'USER';
+    const role = isAdmin ? 'SUPER_ADMIN' : 'USER';
 
     const { error: insertError } = await supabaseAdmin.from('users').insert({
       id,
