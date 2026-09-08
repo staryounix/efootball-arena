@@ -50,8 +50,28 @@ async function ensureSuperAdmin() {
     console.log('✅ Auth admin user already exists.');
   }
 
-  // Optionally, you could insert a row into `public.users` using a direct SQL call
-  // if you have a service‑role key with sufficient privileges.
+  // Upsert the admin row in the application table (public.users)
+  const adminRow = {
+    id: crypto.randomBytes(8).toString('hex'),
+    username: 'admin',
+    email: adminEmail,
+    password_hash: bcrypt.hashSync(adminPassword, bcrypt.genSaltSync(10)),
+    efootball_id: 'ADMIN001',
+    whatsapp: adminPhone,
+    balance: 0,
+    role: 'SUPER_ADMIN',
+    wins: 0,
+    losses: 0,
+    created_at: new Date().toISOString(),
+  };
+  const { error: upsertErr } = await supabase.from('users').upsert(adminRow, { onConflict: 'email' });
+  if (upsertErr) {
+    console.error('⛔️ Failed to upsert admin row into public.users:', upsertErr.message);
+    // Not fatal – continue
+  } else {
+    console.log('🗂️ Upserted SUPER_ADMIN row into public.users.');
+  }
+
 }
 
 ensureSuperAdmin();

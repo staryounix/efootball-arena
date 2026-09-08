@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     const token = signToken({ id: user.id, username: user.username, role: user.role });
 
     // Determine redirect URL based on role
-    const redirectUrl = user.role === 'SUPER_ADMIN' ? '/admin' : '/';
+    const redirectUrl = (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') ? '/admin' : '/';
     const response = NextResponse.json({
       success: true,
       user: {
