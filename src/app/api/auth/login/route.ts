@@ -54,6 +54,8 @@ export async function POST(req: Request) {
 
     const token = signToken({ id: user.id, username: user.username, role: user.role });
 
+    // Determine redirect URL based on role
+    const redirectUrl = user.role === 'SUPER_ADMIN' ? '/admin' : '/';
     const response = NextResponse.json({
       success: true,
       user: {
@@ -66,8 +68,9 @@ export async function POST(req: Request) {
         role: user.role,
         avatar: user.avatar,
         wins: user.wins,
-        losses: user.losses
-      }
+        losses: user.losses,
+      },
+      redirectUrl,
     });
 
     response.cookies.set('auth_token', token, {
@@ -75,7 +78,7 @@ export async function POST(req: Request) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7 // 7 days
+      maxAge: 60 * 60 * 24 * 7, // 7 days
     });
 
     return response;

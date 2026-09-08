@@ -35,11 +35,7 @@ export default function LoginPage() {
         setError(data.error || 'خطأ في تسجيل الدخول');
       } else {
         await refreshUser();
-        if (data.user.role === 'ADMIN') {
-          router.push('/admin');
-        } else {
-          router.push('/matches');
-        }
+        router.push(data.redirectUrl);
       }
     } catch {
       setError('مشكل في الاتصال بالخادم');
