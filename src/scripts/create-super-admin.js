@@ -1,7 +1,7 @@
-// src/scripts/create-super-admin.ts
-import { supabaseAdmin } from '../lib/supabase';
-import bcrypt from 'bcryptjs';
-import crypto from 'node:crypto';
+// src/scripts/create-super-admin.js
+const { supabaseAdmin } = require('../lib/supabase');
+const bcrypt = require('bcryptjs');
+const crypto = require('node:crypto');
 
 /**
  * Creates a SUPER_ADMIN user if one does not already exist.
