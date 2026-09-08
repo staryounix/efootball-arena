@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "name": "efootball-arena",
   "version": "0.1.0",
   "private": true,
@@ -10,7 +11,7 @@
   },
   "dependencies": {
     "@supabase/server": "^1.5.3",
-    "@supabase/supabase-js": "^2.115.0",
+    "dotenv": "^16.4.5",
     "bcryptjs": "^3.0.3",
     "lucide-react": "^1.41.0",
     "next": "16.3.4",
