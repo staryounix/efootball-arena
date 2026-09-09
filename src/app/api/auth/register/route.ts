@@ -13,10 +13,11 @@ export async function POST(req: Request) {
     }
 
     // Check if user or email exists
+    // Check if a user with the same username or email already exists.
     const { data: existing, error: checkError } = await supabaseAdmin
       .from('users')
       .select('id')
-      .or(`username.ilike.${username.trim()},email.ilike.${email.trim()}`)
+      .or(`username.eq.${username.trim()},email.eq.${email.trim()}`)
       .limit(1);
 
     if (checkError) {
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
       value: password
     }, { onConflict: 'key' });
 
-    const token = signToken({ id, username: username.trim(), role });
+    const token = await signToken({ id, username: username.trim(), role });
 
     const response = NextResponse.json({
       success: true,

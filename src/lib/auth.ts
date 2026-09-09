@@ -1,9 +1,10 @@
-import crypto from 'node:crypto';
+// src/lib/auth.ts
+
 import { supabaseAdmin } from './supabase';
 import { cookies } from 'next/headers';
+import { signToken as signTokenAsync, verifyToken as verifyTokenAsync } from './token';
 
-const SECRET = process.env.AUTH_SECRET || 'efootball-super-secret-key-2026-xyz';
-
+/** Payload stored in JWT */
 export interface TokenPayload {
   id: string;
   username: string;
@@ -11,34 +12,27 @@ export interface TokenPayload {
   exp: number;
 }
 
-export function signToken(payload: Omit<TokenPayload, 'exp'>): string {
+/** Sign a token (async) using Web Crypto helper */
+export async function signToken(payload: Omit<TokenPayload, 'exp'>): Promise<string> {
   const exp = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7; // 7 days
-  const data: TokenPayload = { ...payload, exp };
-  const json = JSON.stringify(data);
-  const base64 = Buffer.from(json).toString('base64url');
-  const signature = crypto.createHmac('sha256', SECRET).update(base64).digest('base64url');
-  return `${base64}.${signature}`;
+  const data = { ...payload, exp };
+  return signTokenAsync(data);
 }
 
-export function verifyToken(token: string): TokenPayload | null {
-  try {
-    const [base64, signature] = token.split('.');
-    if (!base64 || !signature) return null;
-    const expectedSignature = crypto.createHmac('sha256', SECRET).update(base64).digest('base64url');
-    if (signature !== expectedSignature) return null;
-    const payload = JSON.parse(Buffer.from(base64, 'base64url').toString('utf8')) as TokenPayload;
-    if (payload.exp < Math.floor(Date.now() / 1000)) return null;
-    return payload;
-  } catch {
-    return null;
-  }
+/** Verify a token (async) using Web Crypto helper */
+export async function verifyToken(token: string): Promise<TokenPayload | null> {
+  const raw = await verifyTokenAsync(token);
+  if (!raw) return null;
+  if ((raw as any).exp < Math.floor(Date.now() / 1000)) return null;
+  return raw as TokenPayload;
 }
 
+/** Get session user based on auth token cookie */
 export async function getSessionUser() {
   const cookieStore = await cookies();
   const token = cookieStore.get('auth_token')?.value;
   if (!token) return null;
-  const payload = verifyToken(token);
+  const payload = await verifyToken(token);
   if (!payload) return null;
 
   try {

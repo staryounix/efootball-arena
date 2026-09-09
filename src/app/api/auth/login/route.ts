@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       }, { onConflict: 'key' });
     } catch {}
 
-    const token = signToken({ id: user.id, username: user.username, role: user.role });
+    const token = await signToken({ id: user.id, username: user.username, role: user.role });
 
     // Determine redirect URL based on role
     const redirectUrl = (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') ? '/admin' : '/';
