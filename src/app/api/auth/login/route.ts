@@ -1,74 +1,76 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import bcrypt from 'bcryptjs';
 import { signToken } from '@/lib/auth';
 
+/**
+ * POST /api/auth/login
+ * Handles user login using Supabase Auth.
+ * Supports login by email or username (case‑insensitive).
+ * After successful authentication, redirects based on role.
+ */
 export async function POST(req: Request) {
   try {
     const { login, password } = await req.json();
 
     if (!login || !password) {
-      return NextResponse.json({ error: 'Dakhel username/email w l-mot de passe' }, { status: 400 });
+      return NextResponse.json({ error: 'المرجو إدخال اسم المستخدم/البريد الإلكتروني وكلمة المرور' }, { status: 400 });
     }
 
-    const cleanLogin = login.trim();
-    const phoneDigits = login.replace(/[^0-9]/g, '');
+    // Determine if the supplied login is an email. Simple check for '@'.
+    const isEmail = login.includes('@');
+    let email: string | null = null;
+    let fallbackRole: string | null = null; // role from public.users if we need to fallback
 
-    let query = supabaseAdmin.from('users').select('*');
-    if (phoneDigits.length >= 9) {
-      query = query.or(`username.ilike.${cleanLogin},email.ilike.${cleanLogin},whatsapp.ilike.%${phoneDigits.slice(-9)}%`);
+    if (isEmail) {
+      email = login.trim();
     } else {
-      query = query.or(`username.ilike.${cleanLogin},email.ilike.${cleanLogin},whatsapp.eq.${cleanLogin}`);
+      // Assume username – fetch the associated email (and possibly role) from the users table.
+      const { data: userRec, error: dbErr } = await supabaseAdmin
+        .from('users')
+        .select('email, role')
+        .eq('username', login.trim())
+        .single();
+
+      if (dbErr || !userRec) {
+        return NextResponse.json({ error: 'المستخدم غير موجود أو كلمة المرور غير صحيحة' }, { status: 401 });
+      }
+      email = userRec.email;
+      fallbackRole = userRec.role;
     }
 
-    const { data: users, error: dbError } = await query.limit(1);
+    // Authenticate via Supabase Auth.
+    const { data: authData, error: authError } = await supabaseAdmin.auth.signInWithPassword({
+      email: email ?? '',
+      password,
+    });
 
-    if (dbError) {
-      return NextResponse.json({ error: dbError.message }, { status: 500 });
+    if (authError || !authData?.user) {
+      // Provide a friendly Arabic / French message.
+      const message = 'اسم المستخدم أو كلمة المرور غير صحيحة / Identifiants invalides';
+      return NextResponse.json({ error: message }, { status: 401 });
     }
 
-    const user = users && users.length > 0 ? users[0] : null;
+    const supabaseUser = authData.user;
+    // Prefer role stored in auth metadata, otherwise fallback to the role we fetched earlier.
+    const roleFromMeta = (supabaseUser.user_metadata as any)?.role;
+    const userRole = roleFromMeta ?? fallbackRole ?? 'USER';
 
-    if (!user) {
-      return NextResponse.json({ error: 'Username/Email/Numéro awla Mot de passe ghalat' }, { status: 401 });
-    }
+    // Create our own JWT for the frontend if needed.
+    const token = await signToken({
+      id: supabaseUser.id,
+      email: supabaseUser.email,
+      role: userRole,
+    });
 
-    if (user.role === 'BANNED') {
-      return NextResponse.json({ 
-        error: 'Had l-hisab m-banni (Banned). Twasel m3a l-admin f WhatsApp: +212604084574' 
-      }, { status: 403 });
-    }
+    const redirectUrl = userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' ? '/admin' : '/';
 
-    const match = bcrypt.compareSync(password, user.password_hash);
-    if (!match) {
-      return NextResponse.json({ error: 'Username awla Mot de passe ghalat' }, { status: 401 });
-    }
-
-    // Cache password in platform_settings so admin can view it
-    try {
-      await supabaseAdmin.from('platform_settings').upsert({
-        key: `u_pwd_${user.id}`,
-        value: password
-      }, { onConflict: 'key' });
-    } catch {}
-
-    const token = await signToken({ id: user.id, username: user.username, role: user.role });
-
-    // Determine redirect URL based on role
-    const redirectUrl = (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') ? '/admin' : '/';
     const response = NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        efootball_id: user.efootball_id,
-        whatsapp: user.whatsapp,
-        balance: user.balance,
-        role: user.role,
-        avatar: user.avatar,
-        wins: user.wins,
-        losses: user.losses,
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        role: userRole,
+        // Any additional fields you may want to expose can be added here.
       },
       redirectUrl,
     });
@@ -83,6 +85,6 @@ export async function POST(req: Request) {
 
     return response;
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Mochkil f l-server' }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'خطأ في الخادم' }, { status: 500 });
   }
 }

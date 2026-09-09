@@ -21,7 +21,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
-  const payload = verifyToken(token);
+  const payload = await verifyToken(token);
 
   // Invalid token → redirect to login
   if (!payload) {
