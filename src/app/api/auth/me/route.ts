@@ -11,7 +11,7 @@ export async function GET() {
     return NextResponse.json({ authenticated: false, user: null });
   }
 
-  const payload = verifyToken(token);
+  const payload = await verifyToken(token);
   if (!payload) {
     return NextResponse.json({ authenticated: false, user: null });
   }

@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS public.users (
 
 -- Insert default admin user
 INSERT INTO public.users (id, username, email, password_hash, efootball_id, whatsapp, balance, role, avatar, wins, losses, created_at)
-VALUES ('admin-id', 'admin', 'admin@example.com', 'admin123', 'admin-efootball-id', '+123456789', 0, 'SUPER_ADMIN', NULL, 0, 0, NOW());
+VALUES ('admin-id', 'admin', 'admin@example.com', crypt('admin123', gen_salt('bf')), 'admin-efootball-id', '+123456789', 0, 'SUPER_ADMIN', NULL, 0, 0, NOW());
 
 -- 2. Recharge Requests Table
 CREATE TABLE IF NOT EXISTS public.recharge_requests (
